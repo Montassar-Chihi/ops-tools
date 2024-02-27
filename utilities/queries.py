@@ -10,6 +10,47 @@ WHERE couriers.city_code in ('TIS','SOU','TIE','BES','SFX','NSO')
 GROUP BY couriers.id
 '''
 
+expected_query = '''
+SELECT
+    DATE_FORMAT(capacity_changes_slot_level.scheduling_slot_started_local_at ,'%Y-%m-%d') AS "date_data",
+    DATE_FORMAT(capacity_changes_slot_level.scheduling_slot_started_local_at, '%a') AS weekday,
+    DATE_FORMAT(capacity_changes_slot_level.scheduling_slot_started_local_at, '%H:%i') AS "hour_data",
+    cities_v2.city_code AS "city_code",
+    SUM(capacity_changes_slot_level.couriers_expected) AS "expected_couriers"
+FROM delta.courier_forecasting_odp.capacity_changes_slot_level  AS capacity_changes_slot_level
+LEFT JOIN delta.central_geography_odp.cities_v2  AS cities_v2 ON capacity_changes_slot_level.city_code = cities_v2.city_code
+WHERE 
+ DATE(capacity_changes_slot_level.scheduling_slot_started_local_at) >= DATE('2022-11-01')
+AND DATE(capacity_changes_slot_level.scheduling_slot_started_local_at) < DATE(DATE_ADD('day',2,CURRENT_DATE))
+AND cities_v2.country_code = 'TN'
+AND DATE_FORMAT(capacity_changes_slot_level.scheduling_slot_started_local_at, '%H:%i') NOT IN ('03:00','04:00','05:00','06:00','07:00','08:00')
+GROUP BY 1,2,3,4
+ORDER BY 1,2,3 DESC,4
+'''
+
+active_query = '''
+SELECT
+    DATE(ss.scheduling_slot_started_local_at) AS date_data,
+    DATE_FORMAT(ss.scheduling_slot_started_local_at, '%a') AS weekday,
+    DATE_FORMAT(ss.scheduling_slot_started_local_at, '%H:%i') AS hour_data,
+    kpi_orders.order_city_code AS city_code,
+    -- active couriers
+    COUNT(DISTINCT CASE WHEN kpi_orders.order_final_status='DeliveredStatus' THEN kpi_orders.courier_id ELSE NULL END) AS active_couriers
+
+FROM delta.central_order_descriptors_odp.order_descriptors_v2 kpi_orders
+    LEFT JOIN delta.courier_dispatching_engine_odp.order_slot_zone_master slot_zone ON slot_zone.order_id = kpi_orders.order_id
+    LEFT JOIN delta.courier_logistics_scheduling_odp.scheduling_slots ss ON ss.scheduling_slot_id = slot_zone.scheduling_slot_id
+    LEFT JOIN delta.courier_order_flow_odp.delivery_times_logistics_order_level_attributes dt_info ON dt_info.order_id = kpi_orders.order_id
+    LEFT JOIN delta.courier_core_cpo_odp.order_level_v2 cpo ON cpo.order_id=kpi_orders.order_id
+WHERE slot_zone.order_city_code IN ('TIS','SFX','SOU')
+    AND DATE(ss.scheduling_slot_started_local_at) >= DATE('2022-11-01')
+    AND DATE(ss.scheduling_slot_started_local_at) < CURRENT_DATE
+    AND kpi_orders.order_handling_strategy='GEN2'
+    AND DATE_FORMAT(ss.scheduling_slot_started_local_at, '%H:%i') NOT IN ('03:00','04:00','05:00','06:00','07:00','08:00')
+GROUP BY 1,2,3,4
+ORDER BY 1,2,3 DESC,4
+'''
+
 query_kickouts_during_saturation = '''
 SELECT 
      kicked_courier_slots.creation_time as kickout_time, start_time as slot_start_time, city_code, courier_id, slot_id,

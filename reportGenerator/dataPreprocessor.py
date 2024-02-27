@@ -7,12 +7,12 @@ from reportGenerator.utils import get_3pl_id
 def preprocess_automatic_email_data():
 
     couriers_df = pd.read_csv("data/courier_db.csv")
-    couriers_df = couriers_df.rename(
-        columns={0: "Glover ID", 1: "First Name", 2: "Surname", 4: "Enabled", 17: "E-Mail", 8: "Phone No.",
-                 3: "Address", 19: "IBAN"})
-    pls_info = pd.read_csv("data/local database - 3PL data.csv")
-    couriers_df["IBAN"] = couriers_df["IBAN"].apply(lambda x: str(x).strip())
-    couriers_df["3PL's ID"] = couriers_df["IBAN"].apply(lambda x: get_3pl_id(x, pls_info))
+    # couriers_df = couriers_df.rename(
+    #     columns={0: "Glover ID", 1: "First Name", 2: "Surname", 4: "Enabled", 17: "E-Mail", 8: "Phone No.",
+    #              3: "Address", 19: "IBAN"})
+    # pls_info = pd.read_csv("data/local database - 3PL data.csv")
+    # couriers_df["IBAN"] = couriers_df["IBAN"].apply(lambda x: str(x).strip())
+    # couriers_df["3PL's ID"] = couriers_df["IBAN"].apply(lambda x: get_3pl_id(x, pls_info))
     couriers_df = couriers_df[
         ["Glover ID", "First Name", "Surname", "Enabled", "E-Mail", "Phone No.", "Address", "3PL's ID"]]
     couriers_df.rename(

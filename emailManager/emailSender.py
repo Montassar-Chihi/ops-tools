@@ -16,7 +16,7 @@ def send_all_emails(all_3pls,emails_3pls,messages):
         SCOPES = [
             "https://www.googleapis.com/auth/gmail.send"
         ]
-        flow = InstalledAppFlow.from_client_secrets_file('credentials.json', SCOPES)
+        flow = InstalledAppFlow.from_client_secrets_file('utilities/credentials.json', SCOPES)
         creds = flow.run_local_server(port=0)
         service = build('gmail', 'v1', credentials=creds)
 
