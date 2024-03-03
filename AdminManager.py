@@ -34,7 +34,7 @@ def load_data_from_livedb(query, attempts=3, delay=2):
 
 def rebook_kickedout_couriers(token, courier_id=None, slot_id=None):
     if (courier_id is None) and (slot_id is None):
-        df = pd.read_csv("data/TN Booked Slots _ Couriers (deprecated) - Kickouts.csv")
+        df = pd.read_csv("data/TN kicked out couriers in current slot - Kickouts.csv")
 
         for index, row in df.iterrows():
             courier_id = row["courier_id"]

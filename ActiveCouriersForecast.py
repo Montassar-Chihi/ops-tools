@@ -148,21 +148,14 @@ class Forecaster():
                     for i in range(-1, 3, 1):
                         if match_city == "ALL":
                             for city in ["TIS", "SFX", "SOU"]:
-                                football_matches_row = []
-                                football_matches_row.append(match_date)
-                                football_matches_row.append(str(int(match_start_hour.split(":")[0]) + i) + ":00")
-                                football_matches_row.append(match_range)
-                                football_matches_row.append(match_type)
-                                football_matches_row.append(city)
+                                football_matches_row = [match_date,
+                                                        str(int(match_start_hour.split(":")[0]) + i) + ":00",
+                                                        match_range, match_type, city]
                                 football_matches_rows.append(football_matches_row)
                         else:
                             city = match_city
-                            football_matches_row = []
-                            football_matches_row.append(match_date)
-                            football_matches_row.append(str(int(match_start_hour.split(":")[0]) + i) + ":00")
-                            football_matches_row.append(match_range)
-                            football_matches_row.append(match_type)
-                            football_matches_row.append(city)
+                            football_matches_row = [match_date, str(int(match_start_hour.split(":")[0]) + i) + ":00",
+                                                    match_range, match_type, city]
                             football_matches_rows.append(football_matches_row)
                 else:
                     special_events_row = []
@@ -317,6 +310,15 @@ class Forecaster():
         with open(self.model_pkl_file, 'wb') as file:
             pickle.dump(regressor, file)
 
+    def load_model(self):
+        with open(self.model_pkl_file, 'rb') as file:
+            model = pickle.load(file)
+        return model
+
+    def get_feature_importance(self):
+        model = self.load_model()
+        importance = model.feature_importances_
+        return importance
 
     def predict_next_two_days(self):
         ######################################## Prediction Process ########################################
@@ -370,9 +372,7 @@ class Forecaster():
 
         ################## make predictions and display results ####################
 
-        # Load Model
-        with open(self.model_pkl_file, 'rb') as file:
-            model = pickle.load(file)
+        model = self.load_model()
 
         # Make predictions
         data_test = city_data_predict.drop(

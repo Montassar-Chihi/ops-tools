@@ -84,7 +84,7 @@ def send_reports(current_period=None):
     ###############################################################
     # print("start loading from livedb")
     # couriers_df = load_data_from_livedb(courier_df_query)
-    print("courier df data loaded")
+    # print("courier df data loaded")
     per_df = load_data_from_starburst(query)
     funnel_df = load_data_from_starburst(query_funnel)
     metrics_df = load_data_from_starburst(query_metrics)
