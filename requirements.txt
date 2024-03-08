@@ -1,0 +1,12 @@
+dataframe_image==0.2.3
+fpdf==1.7.2
+google_api_python_client==2.121.0
+google_auth_oauthlib==1.2.0
+matplotlib==3.8.3
+mysql_connector_repackaged==0.3.1
+numpy==1.26.4
+pandas==2.2.1
+Pillow==10.2.0
+Requests==2.31.0
+scikit_learn==1.4.1.post1
+trino==0.328.0

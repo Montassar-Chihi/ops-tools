@@ -1,5 +1,6 @@
 import pandas as pd
 import requests
+import datetime
 
 
 class Admin:
@@ -18,7 +19,8 @@ class Admin:
                 couriers_ids.append(courier_id)
                 slot_id = row["slot_id"]
                 self.unbook_slot(courier_id, slot_id)
-                self.book_slot(courier_id, slot_id)
+                r = self.book_slot(courier_id, slot_id)
+                print(r)
             self.send_push_notification(couriers_ids,message)
 
         else:
@@ -42,26 +44,51 @@ class Admin:
     def setup_new_couriers_profiles(self, file):
         new_couriers = pd.read_csv(file)
         for index, courier_data in new_couriers.iterrows():
-            courier_id = int(self.search("courier", courier_data["EMAIL"]))
-            new_bag_tag = 1417
-            threepl_tag = courier_data["threepl_tag_id"]
-            threepl_id = courier_data["threepl_id"]
-            threepl_iban = courier_data["threepl_iban"]
-            vat_number = courier_data["vat_number"]
-            cbz = courier_data["VILLE"]
-            shift = courier_data["shift"]
-            if shift == "normal (11-15 & 18-22)":
-                hours = [11,12,13,14,15,18,19,20,21,22]
-            elif shift == "night (16-01)":
-                hours = [16,17,18,19,20,21,22,23,00,1]
-            elif shift == "morning (9-14 & 18-21)":
-                hours = [9,10,11,12,13,14,18,19,20,21]
-            elif shift == "part_time (18-23)":
-                hours = [18,19,20,21,22,23]
+            try:
+                date_formation = str(pd.to_datetime(courier_data["DATE DE FORMATION"])).split(" ")[0]
+            except:
+                date_formation = ""
+            today = str(pd.to_datetime(datetime.datetime.now())).split(" ")[0]
+            if (courier_data["Activé"]) and (date_formation == today):
+                email = str(courier_data["EMAIL"]).strip()
+                print(email)
+                try:
+                    courier_id = int(self.search("courier", email))
+                except:
+                    link = "https://adminapi.glovoapp.com/admin/couriers/search"
+                    data = {
+                        "cities": ["BES", "BIZ", "GBS", "HMN", "HMS", "NBL", "NSO", "SFX", "SOU", "TIE", "TIS"],
+                        "query": str(int(courier_data["NUM DE TELEPHONE"]))
+                    }
+                    r = requests.post(link,
+                                      headers={'Content-Type': 'application/json',
+                                               'authorization': self.token},
+                                      json=data).json()
+                    courier_to_get = len(r["courierPhoneResults"]) - 1
+                    courier_id = r["courierPhoneResults"][courier_to_get]["id"]
+                print(courier_id)
+                if courier_data["SAC"] == "GLOVO NEW":
+                    bag_tag = 1417
+                else:
+                    bag_tag = 2154
+                threepl_tag = courier_data["threepl_tag_id"]
+                threepl_id = int(courier_data["threepl_id"].replace(",",""))
+                threepl_iban = courier_data["threepl_iban"]
+                vat_number = courier_data["vat_number"]
+                cbz = courier_data["VILLE"]
+                shift = courier_data["shift"]
+                if shift == "normal (11-15 & 18-22)":
+                    hours = [11,12,13,14,15,18,19,20,21,22]
+                elif shift == "night (16-01)":
+                    hours = [16,17,18,19,20,21,22,23,00,1]
+                elif shift == "morning (9-14 & 18-21)":
+                    hours = [9,10,11,12,13,14,18,19,20,21]
+                elif shift == "part_time (18-23)":
+                    hours = [18,19,20,21,22,23]
 
-            self.add_tags(courier_id, [new_bag_tag,threepl_tag])
-            self.add_invoicing_details(courier_id, threepl_id, threepl_iban, vat_number)
-            self.book_slots_for_courier(courier_id, cbz, hours)
+                self.add_tags(courier_id, [bag_tag,threepl_tag])
+                self.add_invoicing_details(courier_id, threepl_id, threepl_iban, vat_number)
+                self.book_slots_for_courier(courier_id, cbz, hours)
 
     def book_slots_for_courier(self, courier_id, cbz, hours):
         link_get = "https://adminapi.glovoapp.com/admin/scheduling/couriers/"+str(courier_id)+"/slots"
@@ -74,9 +101,12 @@ class Admin:
         slots_available = slots_available[slots_available["startTime"]]
         for slot_id in slots_available["id"]:
             r = self.book_slot(courier_id, slot_id)
-            print("courier_id: ", courier_id, "slot_id: ", slot_id, "successful booking: ", r)
+        print("courier_id: ", courier_id, "successful booking: ", r)
 
     def add_invoicing_details(self, courier_id, threepl_id, threepl_iban, vat_number):
+        vat_number = str(vat_number).strip()
+        if len(vat_number) != 9:
+            vat_number = " "
         link_get = 'https://adminapi.glovoapp.com/admin/couriers/' + str(courier_id)
         get_data = requests.get(link_get, headers={'Content-Type': 'application/json', 'authorization': self.token}).json()
         data = {
@@ -99,7 +129,6 @@ class Admin:
         # Get tags of old_courier_id
         tagIds_old = []
         tags_old_json = requests.get(f"https://adminapi.glovoapp.com/admin/entity_tagging/tagged_entities/COURIER/" + str(courier_id), headers={"Content-Type": "application/json", "authorization": self.token}).json()
-        print(tags_old_json)
         for value in range(len(tags_old_json["tags"])):
             tagId_old = tags_old_json["tags"][value]["id"]
             tagIds_old.append(tagId_old)
@@ -164,6 +193,7 @@ class Admin:
                          headers={'Content-Type': 'application/json',
                                   'authorization': self.token},
                           json=data).json()
+        print(r)
         if field == "order":
             id_result = r["orderCodeResults"]
         elif field == "courier":
