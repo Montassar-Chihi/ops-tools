@@ -12,24 +12,17 @@ class Admin:
     def rebook_kickedout_couriers(self, file=None, courier_id=None, slot_id=None):
         message = "فرصة أخرى بش تعمل check-in !! :warning: فما برشة خدمة  :motor_scooter: فرصة بش دخل أكثر فلوس !!  :money_with_wings:"
         couriers_ids = []
-        if (courier_id is None) and (slot_id is None):
-            df = pd.read_csv(file)
-            for index, row in df.iterrows():
-                courier_id = row["courier_id"]
-                couriers_ids.append(courier_id)
-                slot_id = row["slot_id"]
-                self.unbook_slot(courier_id, slot_id)
-                r = self.book_slot(courier_id, slot_id)
-                print(r)
-            self.send_push_notification(couriers_ids,message)
-
-        else:
-            couriers_ids = [courier_id]
+        df = pd.read_csv(file)
+        for index, row in df.iterrows():
+            courier_id = row["courier_id"]
+            couriers_ids.append(courier_id)
+            slot_id = row["slot_id"]
             self.unbook_slot(courier_id, slot_id)
-            self.book_slot(courier_id, slot_id)
-            self.send_push_notification(couriers_ids, message)
+            r = self.book_slot(courier_id, slot_id)
+            print(r)
+        self.send_push_notification(couriers_ids, message)
 
-    def send_push_notification(self,couriers_ids,message):
+    def send_push_notification(self, couriers_ids, message):
         link = f"https://adminapi.glovoapp.com/admin/notifications/couriers"
         data = {
             "usersIds": couriers_ids,
