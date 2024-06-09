@@ -19,8 +19,7 @@ def preprocess_automatic_email_data():
         columns={"Glover ID": "courier_id", "First Name": "first_name", "Surname": "last_name", "Enabled": "enabled",
                  "E-Mail": "email", "Phone No.": "phone", "Address": "adress", "3PL's ID": "3pl_id"}, inplace=True)
     couriers_df = couriers_df[couriers_df["enabled"] == 1].reset_index(drop=True)
-    couriers_df["phone"] = couriers_df["phone"].astype("int").astype("str").apply(lambda x: "+" + x)
-
+    
     # Load couriers daily performance df
     per_df = pd.read_csv("data/per_df.csv")
 
@@ -35,7 +34,8 @@ def preprocess_automatic_email_data():
     metrics_df = metrics_df.groupby(["date", "courier_id", "metric"]).agg({"metric_value": "mean"}).reset_index()
     metrics_df = metrics_df.pivot_table("metric_value", ["date", "courier_id"], "metric").reset_index()
     metrics_df.rename(columns={"Courier_not_moving": "courier_not_moving_metric_value",
-                               "Late_unbooks_and_no_shows": "late_unbooks_and_no_shows_metric_value",
+                               "No_shows": "no_shows_metric_value",
+                               "Late_unbookings" : "late_unbookings_metric_value",
                                "Reassignments": "reassignments_metric_value"}, inplace=True)
 
     df = per_df.merge(metrics_df, on=["date", "courier_id"], how="left")
@@ -46,11 +46,11 @@ def preprocess_automatic_email_data():
     for i in range(1, 28):
         date = pd.to_datetime(datetime.date.today() - datetime.timedelta(days=i))
         gdf = df[df["date"] == date].groupby(["date", "courier_id"]).agg(
-            {"courier_not_moving_metric_value": "first", "late_unbooks_and_no_shows_metric_value": "first",
+            {"courier_not_moving_metric_value": "first", "no_shows_metric_value": "first",
              "reassignments_metric_value": "first"}).reset_index()
         gdf = gdf.fillna(0)
         gdf.sort_values(
-            by=["late_unbooks_and_no_shows_metric_value", "reassignments_metric_value", "courier_not_moving_metric_value"],
+            by=["no_shows_metric_value", "reassignments_metric_value", "courier_not_moving_metric_value"],
             ascending=[False, False, False], inplace=True)
         gdf = gdf.reset_index(drop=True)
         gdf["is_worst_5_percent"] = False
@@ -63,10 +63,6 @@ def preprocess_automatic_email_data():
     # Load funnel df
     funnel_df = pd.read_csv("data/funnel_df.csv")
     funnel_df = couriers_df.merge(funnel_df, on="courier_id", how="right")
-    acc_funnel_df = funnel_df[(funnel_df["cycle_point"].str.contains("Accelerated Funnel"))]
-    acc_funnel_df["accelarted"] = True
-    funnel_df = funnel_df.merge(acc_funnel_df[["courier_id", "accelarted"]], on="courier_id", how="left")
-    funnel_df["accelarted"] = funnel_df["accelarted"].fillna(False)
 
     # Load gps fraud data
     gps_fraud_df = pd.read_csv("data/gps_fraud_df.csv")

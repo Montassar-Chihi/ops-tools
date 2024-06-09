@@ -6,7 +6,7 @@ SELECT
     couriers.city_code, users.email, 0 AS code, couriers.iban 
 FROM couriers JOIN users ON couriers.id = users.id JOIN phone_numbers ON phone_numbers.user_id = users.id 
 JOIN cities ON cities.code = couriers.city_code LEFT OUTER JOIN devices d ON users.id = d.user_id 
-WHERE couriers.city_code in ('TIS','SOU','TIE','BES','SFX','NSO') 
+WHERE couriers.city_code in ('TIS','SOU','TIE','BES','SFX','NSO','MDH','NBL','MST') 
 GROUP BY couriers.id
 '''
 
@@ -42,7 +42,7 @@ FROM delta.central_order_descriptors_odp.order_descriptors_v2 kpi_orders
     LEFT JOIN delta.courier_logistics_scheduling_odp.scheduling_slots ss ON ss.scheduling_slot_id = slot_zone.scheduling_slot_id
     LEFT JOIN delta.courier_order_flow_odp.delivery_times_logistics_order_level_attributes dt_info ON dt_info.order_id = kpi_orders.order_id
     LEFT JOIN delta.courier_core_cpo_odp.order_level_v2 cpo ON cpo.order_id=kpi_orders.order_id
-WHERE slot_zone.order_city_code IN ('TIS','SFX','SOU')
+WHERE slot_zone.order_city_code IN ('TIS','SFX','SOU','MDH','NBL','MST')
     AND DATE(ss.scheduling_slot_started_local_at) >= DATE('2022-11-01')
     AND DATE(ss.scheduling_slot_started_local_at) < CURRENT_DATE
     AND kpi_orders.order_handling_strategy='GEN2'
@@ -72,33 +72,27 @@ AND p_aggregation_date >= DATE_ADD('day', -28,CURRENT_DATE)
 '''
 
 query_funnel = '''
-SELECT 
-last_movement_date,
-courier_id,
-city_code,
-CASE
-    WHEN metric_id = 1 THEN 'Reassignments'
-    WHEN metric_id = 2 THEN 'Late_unbooks_and_no_shows'
-    ELSE 'Courier_not_moving'
-END AS metric,
-CASE
-    WHEN step_id = 1 THEN '1'
-    WHEN step_id = 2 THEN '2'
-    WHEN step_id = 3 THEN '3'
-    WHEN step_id = 4 THEN '4'
-    ELSE 'left the funnel'
-END AS step,
-CASE 
-    WHEN step_id > 1 AND cycle_point = 'START' THEN 'START Accelerated Funnel'
-    ELSE cycle_point 
-END AS cycle_point,
-metric_value,
-reason
-FROM 
-"delta"."courier_fleet_quality_odp"."funnel_tracker" AS funnel_tracker
-WHERE city_code IN ('TIS','SOU','SFX')
-AND cycle_point NOT IN ('NO_CHANGE')
-AND funnel_tracker.p_calculation_date >= DATE_ADD('day', -28,CURRENT_DATE)
+SELECT
+    (DATE_FORMAT(fleet_management_actions_history.event_datetime , '%Y-%m-%d')) AS "last_movement_date",
+    fleet_management_actions_history.courier_id  AS "courier_id",
+    fleet_management_actions_history.action  AS "action",
+    upper(fleet_management_actions_history.reason)  AS "reason"
+FROM delta.courier_quality_and_compliance_odp.fleet_management_actions_history  AS fleet_management_actions_history
+LEFT JOIN delta.courier_attributes_odp.courier_attributes  AS courier_attributes ON fleet_management_actions_history.courier_id = courier_attributes.courier_id
+WHERE ((( fleet_management_actions_history.event_datetime  ) >= ((DATE_ADD('day', -28, CAST(CAST(DATE_TRUNC('DAY', NOW()) AS DATE) AS TIMESTAMP)))) AND ( fleet_management_actions_history.event_datetime  ) < ((DATE_ADD('day', 28, DATE_ADD('day', -28, CAST(CAST(DATE_TRUNC('DAY', NOW()) AS DATE) AS TIMESTAMP))))))) 
+AND (case when fleet_management_actions_history.operator_id = 62583763 then 'Carmen'
+              when fleet_management_actions_history.operator_id in (62811036, 10203017, 39936186, 63896217) then 'Cash Bot'
+              when fleet_management_actions_history.operator_id = 136464745 then 'AFM'
+              else 'Manual'
+          end ) = 'AFM' AND (upper(fleet_management_actions_history.reason) ) IN ('AUTO_ASSIGNMENT_OFF', 'COURIER_NOT_MOVING', 'LATE_UNBOOKINGS', 'NO_SHOWS', 'NO_SHOWS_UNBOOKS', 'REASSIGNMENTS')
+AND (courier_attributes.country_code ) = 'TN'
+GROUP BY
+    1,
+    2,
+    3,
+    4
+ORDER BY
+    3
 
 '''
 query_metrics = '''
@@ -107,13 +101,14 @@ p_calculation_date AS "date",
 courier_id,
 CASE
     WHEN metric_id = 1 THEN 'Reassignments'
-    WHEN metric_id = 2 THEN 'Late_unbooks_and_no_shows'
-    ELSE 'Courier_not_moving'
+    WHEN metric_id = 12	 THEN 'No_shows'
+    WHEN metric_id = 13 THEN 'Late_unbookings'
+    WHEN metric_id = 10 THEN 'Courier_not_moving'
 END AS metric,
 metric_value 
 FROM 
 "delta"."courier_fleet_quality_odp"."metric_value"
-WHERE city_code in ('TIS','SOU','SFX')
+WHERE city_code in ('TIS','SOU','SFX','MDH','NBL','MST')
 AND p_calculation_date >= DATE_ADD('day', -28,CURRENT_DATE)
 
 '''
@@ -256,7 +251,7 @@ SELECT
     (DATE_FORMAT(excellence_score_courier_level_features.p_calculation_date , '%Y-%m-%d')) AS "date",
     excellence_score_courier_level_features.courier_id  AS "courier_id",
     excellence_score_courier_level_features.city_code  AS "city_code",
-    excellence_score_courier_level_features.excellence_score_displayed  AS "excellence_score"
+    excellence_score_courier_level_features.excellence_score_simplified_displayed  AS "excellence_score"
 FROM delta.courier__excellence_score_analytics__odp.excellence_score_courier_level_features  AS excellence_score_courier_level_features
 WHERE ((( excellence_score_courier_level_features.p_calculation_date  ) >= ((DATE_ADD('day', -28, CAST(CAST(DATE_TRUNC('DAY', NOW()) AS DATE) AS TIMESTAMP)))) AND 
 city_code IN ('TIS','SOU','SFX') AND is_working_date = TRUE  ))

@@ -21,7 +21,7 @@ def send_all_emails(all_3pls,emails_3pls,messages):
         service = build('gmail', 'v1', credentials=creds)
 
         for current_3pl in list(all_3pls.keys()):
-            # recipient_email = emails_3pls[current_3pl]
+            recipient_email = emails_3pls[current_3pl]
             # recipient_email = "mc.montassar.chihi@gmail.com"
 
             filename = messages[current_3pl]["file"]
@@ -30,14 +30,11 @@ def send_all_emails(all_3pls,emails_3pls,messages):
             message['From'] = sender_email
             # message['To'] = recipient_email
             # message['Cc'] = "ops-tn@glovoapp.com"
-            message['To'] = "tn.locals@glovoapp.com"
             html_part = MIMEText(messages[current_3pl]["body"], "html")
             message.attach(html_part)
             with open(filename, "rb") as f:
                 attach = MIMEApplication(f.read(), _subtype="pdf")
                 attach.add_header('Content-Disposition', 'attachment', filename=str(filename))
             message.attach(attach)
-            server.sendmail(sender_email, "tn.locals@glovoapp.com", message.as_string())
-            # server.sendmail(sender_email, "ops-tn@glovoapp.com", message.as_string())
+            server.sendmail(sender_email, "montassar.chihi@glovoapp.com", message.as_string())
             # server.sendmail(sender_email, recipient_email, message.as_string())
-            break

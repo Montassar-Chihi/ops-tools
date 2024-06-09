@@ -28,6 +28,9 @@ def send_reports(current_period=None):
         if current_period == "weekly":
             period = "weekly"
             date = pd.to_datetime(datetime.date.today() - datetime.timedelta(days=7))
+        elif current_period == "weekend":
+            period = "weekend"
+            date = pd.to_datetime(datetime.date.today() - datetime.timedelta(days=3))
         elif current_period == "daily":
             period = "daily"
             date = pd.to_datetime(datetime.date.today() - datetime.timedelta(days=1))
@@ -61,7 +64,8 @@ def send_reports(current_period=None):
         "3,199": "FlexyFleet",
         "101": "Freelancer",
         "3,207": "MAG Delivery",
-        "3,206": "Principe de Cayena"
+        "3,206": "Principe de Cayena",
+        "3,264" : "Ste Hafedh Delivery"
     }
     emails_3pls = {
         "399": "mbekri@outlook.com, ferjaniyassin864@gmail.com",
@@ -72,11 +76,12 @@ def send_reports(current_period=None):
         "2,720": "Cd.glovo@gmail.com",
         "2,983": "big4delivery.2023@gmail.com",
         "3,029": "go2godelivery@gmail.com",
-        "3,164": "direction@mayen-express.com",
+        "3,164": "direction@mayen-express.com, haythem.ghizaoui@mayen-express.com",
         "3,199": "FlexyFleetTN@gmail.com",
         "101": "ops-tn@glovoapp.com",
         "3,207": "deliveryservicesmag@gmail.com",
-        "3,206": "Khmirimouhamedamine@gmail.com"
+        "3,206": "Khmirimouhamedamine@gmail.com",
+        "3,264" : "ananeabdelhafidh@gmail.com"
     }
 
     ###############################################################
@@ -85,26 +90,26 @@ def send_reports(current_period=None):
     # print("start loading from livedb")
     # couriers_df = load_data_from_livedb(courier_df_query)
     # print("courier df data loaded")
-    per_df = load_data_from_starburst(query)
-    funnel_df = load_data_from_starburst(query_funnel)
-    metrics_df = load_data_from_starburst(query_metrics)
-    capus_df = load_data_from_starburst(query_capus)
-    check_in_no_work_df = load_data_from_starburst(query_check_in_no_no_work)
-    gps_fraud_df = load_data_from_starburst(query_gps_fraud)
-    excellence_score_df = load_data_from_starburst(query_excellence_score)
+    # per_df = load_data_from_starburst(query)
+    # funnel_df = load_data_from_starburst(query_funnel)
+    # metrics_df = load_data_from_starburst(query_metrics)
+    # capus_df = load_data_from_starburst(query_capus)
+    # check_in_no_work_df = load_data_from_starburst(query_check_in_no_no_work)
+    # gps_fraud_df = load_data_from_starburst(query_gps_fraud)
+    # excellence_score_df = load_data_from_starburst(query_excellence_score)
     print("step 1 (done): courier data loaded")
-
-    ###############################################################
-    # save data for later use
-    ###############################################################
-    # couriers_df.to_csv("data/courier_db.csv")
-    metrics_df.to_csv("data/metrics_df.csv")
-    funnel_df.to_csv("data/funnel_df.csv")
-    per_df.to_csv("data/per_df.csv")
-    capus_df.to_csv("data/capus_df.csv")
-    check_in_no_work_df.to_csv("data/check_in_no_work_df.csv")
-    gps_fraud_df.to_csv("data/gps_fraud_df.csv")
-    excellence_score_df.to_csv('data/excellence_score.csv')
+    #
+    # ###############################################################
+    # # save data for later use
+    # ###############################################################
+    # # couriers_df.to_csv("data/courier_db.csv")
+    # metrics_df.to_csv("data/metrics_df.csv")
+    # funnel_df.to_csv("data/funnel_df.csv")
+    # per_df.to_csv("data/per_df.csv")
+    # capus_df.to_csv("data/capus_df.csv")
+    # check_in_no_work_df.to_csv("data/check_in_no_work_df.csv")
+    # gps_fraud_df.to_csv("data/gps_fraud_df.csv")
+    # excellence_score_df.to_csv('data/excellence_score.csv')
     print("step 2 (done): courier data saved")
 
     ###############################################################
@@ -129,7 +134,7 @@ def send_reports(current_period=None):
                                         courier_not_moving_3)
 
             # 3pl stats in the pdf
-            avg_total_funnel_moves,total_funnel_ends,total_funnel_moves = prepare_3pl_stats_for_current_3pl(df, date, current_3pl, funnel_df,period)
+            avg_total_funnel_moves,total_funnel_moves = prepare_3pl_stats_for_current_3pl(df, date, current_3pl, funnel_df,period)
 
             gps_fraud_couriers = pd.DataFrame()
             capus_couriers = pd.DataFrame()
@@ -143,8 +148,8 @@ def send_reports(current_period=None):
                     current_3pl, date, period, gps_fraud_df, capus_df, check_in_no_work_df)
 
                 # Don't touch
-                total_funnel_ends = 0
                 total_funnel_moves = 0
+            total_funnel_ends = 0
 
             # Generate the pdf report
             report_subtitle = generate_pdf_for_current_3pl(current_3pl, period, all_3pls, date,

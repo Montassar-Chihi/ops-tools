@@ -17,6 +17,8 @@ def generate_pdf_for_current_3pl(current_3pl,period,all_3pls,date,
         pdf.set_font("Times", "B", 21)
         if period == "daily":
             report_title = all_3pls[current_3pl] + ": Rapport Quotidien"
+        elif period == "weekend":
+            report_title = all_3pls[current_3pl] + ": Rapport du Week-end"
         else:
             report_title = all_3pls[current_3pl] + ": Rapport Hebdomadaire"
 
@@ -166,7 +168,7 @@ def generate_pdf_for_current_3pl(current_3pl,period,all_3pls,date,
             pdf.image("content/blocks.jpg", w=90, x=105, y=141)
 
         #### active couriers
-        if period == "weekly":
+        if period == "weekly" or period == "weekend":
             pdf.add_page()
             pdf.set_font("Times", "B", 15)
             pdf.set_text_color(255, 0, 0)

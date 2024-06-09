@@ -64,22 +64,19 @@ def prepare_3pl_stats_for_current_3pl(df,date,current_3pl,funnel_df,period):
     plt.savefig("content/noshows.jpg")
 
     # total blocks
-    total_funnel_moves = len(funnel_df.loc[(pd.to_datetime(funnel_df["last_movement_date"]) >= date) & (funnel_df["3pl_id"] == str(current_3pl)) & (funnel_df["step"] == "4")])
-    avg_total_funnel_moves = len(funnel_df.loc[(pd.to_datetime(funnel_df["last_movement_date"]) >= date) & (funnel_df["step"] == "4")]) / len(df["3pl_id"].unique())
+    total_funnel_moves = len(funnel_df.loc[(pd.to_datetime(funnel_df["last_movement_date"]) >= date) & (funnel_df["3pl_id"] == str(current_3pl)) & (funnel_df["action"] == "BLOCK")])
+    avg_total_funnel_moves = len(funnel_df.loc[(pd.to_datetime(funnel_df["last_movement_date"]) >= date) & (funnel_df["action"] == "BLOCK")]) / len(df["3pl_id"].unique())
     # Plotting the bar chart with custom colors
     colors = [['#78c98e' if value < np.max([total_funnel_moves, avg_total_funnel_moves]) else '#f08181' for value in [total_funnel_moves]][0], "#137fd0"]
     plt.figure(figsize=(7, 7))
     ax = plt.bar(["# Coursiers de 3PL : " + str(int(total_funnel_moves)), "Avg : " + str(int(avg_total_funnel_moves))],[total_funnel_moves, avg_total_funnel_moves], color=colors)
     plt.xlabel('')
-    plt.ylabel('# Coursiers à l\'étape 4')
-    plt.title('# Coursiers à l\'étape 4 V.S La Moyenne')
+    plt.ylabel('# Coursiers Bloqués')
+    plt.title('# Coursiers Bloqués V.S La Moyenne')
     plt.savefig("content/blocks.jpg")
 
-    # total funnel ends (weekly)
-    total_funnel_ends = len(funnel_df.loc[(pd.to_datetime(funnel_df["last_movement_date"]) >= date) & (funnel_df["3pl_id"] == str(current_3pl)) & (funnel_df["step"] == "left the funnel")])
-
     # total funnel moves (weekly)
-    total_funnel_moves = len(funnel_df.loc[(pd.to_datetime(funnel_df["last_movement_date"]) >= date) & (funnel_df["3pl_id"] == str(current_3pl)) & (funnel_df["step"] != "left the funnel") & (funnel_df["step"] != "4")])
+    total_funnel_moves = len(funnel_df.loc[(pd.to_datetime(funnel_df["last_movement_date"]) >= date) & (funnel_df["3pl_id"] == str(current_3pl))])
 
     # Active couriers vs available couriers
     active_couriers = df.loc[(df["date"] >= date) & (df["3pl_id"] == str(current_3pl)) & (df["num_orders"] > 5)]
@@ -102,7 +99,7 @@ def prepare_3pl_stats_for_current_3pl(df,date,current_3pl,funnel_df,period):
     plt.title("Coursiers disponibles non active VS Coursiers Active")
     plt.savefig("content/active.jpg")
 
-    return avg_total_funnel_moves,total_funnel_ends,total_funnel_moves
+    return avg_total_funnel_moves,total_funnel_moves
 
 
 def prepare_fraud_metrics_for_current_3pl(current_3pl,yesterday, period,gps_fraud_df,capus_df,check_in_no_work_df):
@@ -159,8 +156,8 @@ def prepare_afm_metrics_for_current_3pl(df, date, period, current_3pl, reass_abs
     dfi.export(style_df_in_report(df_reass_t3), "content/"+period+"_reass_t3_" + str(current_3pl) + ".jpg")
 
     df_nslu_t1 = df[
-        (df["date"] >= date) & (df["late_unbooks_and_no_shows_metric_value"] < no_shows_late_unbooks_2) & (
-                df["late_unbooks_and_no_shows_metric_value"] >= no_shows_late_unbooks_1) & (
+        (df["date"] >= date) & (df["no_shows_metric_value"] < no_shows_late_unbooks_2) & (
+                df["no_shows_metric_value"] >= no_shows_late_unbooks_1) & (
                 df["3pl_id"] == str(current_3pl))]
     df_nslu_t1 = df_nslu_t1.groupby("courier_id").agg(
         {"date": "first", "first_name": "first", "last_name": "first", "phone": "first",
@@ -169,8 +166,8 @@ def prepare_afm_metrics_for_current_3pl(df, date, period, current_3pl, reass_abs
     dfi.export(style_df_in_report(df_nslu_t1), "content/"+period+"_nslu_t1_" + str(current_3pl) + ".jpg")
 
     df_nslu_t2 = df[
-        (df["date"] >= date) & (df["late_unbooks_and_no_shows_metric_value"] < no_shows_late_unbooks_3) & (
-                df["late_unbooks_and_no_shows_metric_value"] >= no_shows_late_unbooks_2) & (
+        (df["date"] >= date) & (df["no_shows_metric_value"] < no_shows_late_unbooks_3) & (
+                df["no_shows_metric_value"] >= no_shows_late_unbooks_2) & (
                 df["3pl_id"] == str(current_3pl))]
     df_nslu_t2 = df_nslu_t2.groupby("courier_id").agg(
         {"date": "first", "first_name": "first", "last_name": "first", "phone": "first",
@@ -179,7 +176,7 @@ def prepare_afm_metrics_for_current_3pl(df, date, period, current_3pl, reass_abs
     dfi.export(style_df_in_report(df_nslu_t2), "content/"+period+"_nslu_t2_" + str(current_3pl) + ".jpg")
 
     df_nslu_t3 = df[(df["date"] >= date) & (
-            df["late_unbooks_and_no_shows_metric_value"] >= no_shows_late_unbooks_3) & (
+            df["no_shows_metric_value"] >= no_shows_late_unbooks_3) & (
                             df["3pl_id"] == str(current_3pl))]
     df_nslu_t3 = df_nslu_t3.groupby("courier_id").agg(
         {"date": "first", "first_name": "first", "last_name": "first", "phone": "first",
@@ -227,146 +224,65 @@ def prepare_funnel_data_for_current_3pl(current_3pl, funnel_df, yesterday, perio
     for idd in yesterday_funnel_df["courier_id"]:
         courier_funnel_df = yesterday_funnel_df[(yesterday_funnel_df["courier_id"] == idd)]
         name = str(courier_funnel_df["first_name"].values[0]) + " " + str(courier_funnel_df["last_name"].values[0])
-        metric = courier_funnel_df["metric"].values[0]
-        step = courier_funnel_df["step"].values[0]
-        accelarted = courier_funnel_df["accelarted"].values[0]
-        metric_value = courier_funnel_df["metric_value"].values[0]
+        action = courier_funnel_df["action"].values[0]
         reason = courier_funnel_df["reason"].values[0]
-        cycle_point = courier_funnel_df["cycle_point"].values[0]
         next_step = ""
         recommandations = ""
         pl_id = courier_funnel_df["3pl_id"].values[0]
 
-        if accelarted:
-            if step == "4":
-                if metric == "Late_unbooks_and_no_shows":
-                    recommandations = "<b style='color:#670b0b;'>Suite à un dépassement du nombre maximal d'absences autorisé ('No shows'), le Coursier a été bloqué définitivement.</b>"
-                elif metric == "Reassignments":
-                    recommandations = "<b style='color:#670b0b;'>En raison d'un dépassement du nombre maximal de réassignations autorisé, le Coursier a été bloqué définitivement.</b>"
-                elif metric == "Courier_not_moving":
-                    recommandations = "<b style='color:#670b0b;'>Suite à un dépassement du seuil maximal d'inactivité autorisé ('Courier not moving'), le coursier a été bloqué définitivement.</b>"
-            elif step != "4":
-                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet d'une suspension temporaire de 48 heures ou définitive."
-                if metric == "Late_unbooks_and_no_shows":
-                    recommandations = '''<b style='color:#670b0b;'>Le Coursier a dépassé le seuil maximal de "No shows" et se trouve actuellement dans le Funnel accéléré, ce qui le place à haut risque de blocage lors de la prochaine action AFM.</b><br>
-                                                <b>Actions recommandées :</b>
-                                                <ul>
-                                                    <li>
-                                                        <b>Vérification d'incident :</b>
-                                                        <ul>
-                                                            <li>Veuillez vérifier s'il y a eu un incident justifiant les absences du Coursier.</li>
-                                                            <li>Si un incident est à l'origine des "No shows", veuillez le documenter et prendre les mesures correctives appropriées.</li>
-                                                        </ul>
-                                                    </li>
-                                                    <li>
-                                                        <b>Éducation du Coursier :</b>
-                                                        <ul>
-                                                            <li>En l'absence d'incident, veuillez contacter le Coursier et l'informer du dépassement du seuil de "No shows" et du risque de blocage imminent.</li>
-                                                            <li>Utilisez le guide AFM pour l'éduquer sur les attentes en matière de disponibilité et les conséquences des absences répétées.</li>
-                                                            <li>Fournissez-lui un support pour l'aider à améliorer sa ponctualité à l'avenir.</li>
-                                                        </ul>
-                                                    </li>
-                                                </ul>'''
+        if action == "WARN":
+            if reason == "NO_SHOWS":
+                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'un avertissement</b> ou <b style='color:#cb0000;'>d'une suspension temporaire de 24 heures</b>."
+                recommandations = "Nous recommandons d'informer le coursier sur l'importance de se présenter aux créneaux réservés et de ne pas réserver d'heures à moins que le coursier soit certain de les travailler."
+            elif reason == "REASSIGNMENTS":
+                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'un avertissement</b> ou <b style='color:#cb0000;'>d'une suspension temporaire de 24 heures</b>."
+                recommandations = "Nous recommandons d'éduquer le coursier sur l'importance d'accepter les commandes et de ne pas les réaffecter et de l'avertir des conséquences de cette action."
+            elif reason == "COURIER_NOT_MOVING":
+                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'un avertissement</b> ou <b style='color:#cb0000;'>d'une suspension temporaire de 24 heures</b>."
+                recommandations = "Nous recommandons d'éduquer le coursier sur l'importance de suivre correctement les processus Glovo, notamment en cliquant sur les boutons au bon moment et de ne pas s'arrêter pendant une commande."
+            elif reason == "LATE_UNBOOKINGS":
+                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'un avertissement</b> ou <b style='color:#cb0000;'>d'une suspension temporaire de 24 heures</b>."
+                recommandations = "Nous recommandons d'informer le coursier sur l'importance de ne pas annuler les créneaux réservés avant moins de 24h et de ne pas réserver d'heures à moins que le coursier soit certain de les travailler."
 
-                elif metric == "Reassignments":
-                    recommandations = '''<b style='color:#670b0b;'>Le Coursier a dépassé le seuil critique de réassignations et se trouve actuellement dans le Funnel accéléré, le plaçant à risque de blocage lors de la prochaine action AFM.</b><br>
-                                                <b>Actions recommandées :</b><br>
-                                                <ul>
-                                                    <li>
-                                                        <b>Vérification d'incident :</b>
-                                                        <ul>
-                                                            <li>Assurez-vous qu'il n'y a pas eu d'incident justifiant les réassignations fréquentes du Coursier.</li>
-                                                            <li>Si un incident est à l'origine des réassignations, documentez-le et prenez les mesures correctives appropriées.</li>
-                                                        </ul>
-                                                    </li>
-                                                    <li>
-                                                        <b>Éducation du Coursier :</b>
-                                                        <ul>
-                                                            <li>En l'absence d'incident, contactez le Coursier et informez-le du dépassement du seuil de réassignations et du risque de blocage imminent.</li>
-                                                            <li>Utilisez le guide AFM pour l'éduquer sur les attentes en matière de performance et les conséquences des réassignations répétées.</li>
-                                                            <li>Fournissez-lui un soutien pour l'aider à améliorer son respect des consignes et des processus à l'avenir.</li>
-                                                       </ul> 
-                                                    </li>
-                                                </ul>'''
+        elif action == "WARN":
+            if reason == "NO_SHOWS":
+                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'>  d'un avertissement</b> ou <b style='color:#cb0000;'>d'une suspension temporaire de 24 heures</b>."
+                recommandations = "Nous recommandons d'informer le coursier sur l'importance de se présenter aux créneaux réservés et de ne pas réserver d'heures à moins que le coursier soit certain de les travailler."
+            elif reason == "REASSIGNMENTS":
+                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'>  d'un avertissement</b> ou <b style='color:#cb0000;'>d'une suspension temporaire de 24 heures</b>."
+                recommandations = "Nous recommandons d'éduquer le coursier sur l'importance d'accepter les commandes et de ne pas les réaffecter et de l'avertir des conséquences de cette action."
+            elif reason == "COURIER_NOT_MOVING":
+                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'un avertissement</b> ou <b style='color:#cb0000;'>d'une suspension temporaire de 24 heures</b>."
+                recommandations = "Nous recommandons d'éduquer le coursier sur l'importance de suivre correctement les processus Glovo, notamment en cliquant sur les boutons au bon moment et de ne pas s'arrêter pendant une commande."
+            elif reason == "LATE_UNBOOKINGS":
+                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'un avertissement</b> ou <b style='color:#cb0000;'>d'une suspension temporaire de 24 heures</b>."
+                recommandations = "Nous recommandons d'informer le coursier sur l'importance de ne pas annuler les créneaux réservés avant moins de 24h et de ne pas réserver d'heures à moins que le coursier soit certain de les travailler."
 
-                elif metric == "Courier_not_moving":
-                    recommandations = '''<b style='color:#670b0b;'>Le Coursier a dépassé le seuil critique d'inactivité et se trouve actuellement dans le Funnel accéléré, le plaçant à haut risque de blocage lors de la prochaine action AFM.</b><br>
-                                                <b>Actions recommandées :</b>
-                                                <ul>
-                                                    <li>
-                                                        <b>Vérification d'incident :</b>
-                                                        <ul>
-                                                            <li>Effectuez une enquête immédiate pour déterminer s'il existe un incident justifiant l'inactivité du Coursier. (Problème technique, maladie, etc.)</li>
-                                                            <li>Si un incident est identifié, documentez-le et prenez les mesures correctives appropriées.</li>
-                                                        </ul>
-                                                    </li>
-                                                    <li>
-                                                        <b>Éducation du Coursier :</b>
-                                                        <ul>
-                                                            <li>Contactez le Coursier dès que possible.
-                                                            <li>Expliquez-lui clairement et fermement la situation : dépassement du seuil d'inactivité, risque de blocage imminent.</li>
-                                                            <li>Utilisez le guide AFM pour l'éduquer sur les attentes en matière de disponibilité et les conséquences graves de l'inactivité prolongée.</li>
-                                                            <li>Offrez votre soutien et fournissez des ressources (guide AFM, formations supplémentaires) pour l'aider à reprendre une activité régulière.</li>
-                                                        </ul>
-                                                    </li>
-                                                </ul>'''
-        else:
-            if step == "1":
-                if metric == "Late_unbooks_and_no_shows":
-                    next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'un avertissement</b> ou <b style='color:#cb0000;'>d'une suspension temporaire de 24 heures</b>."
-                    recommandations = "Nous recommandons d'informer le coursier sur l'importance de se présenter aux créneaux réservés et de ne pas réserver d'heures à moins que le coursier soit certain de les travailler."
-                elif metric == "Reassignments":
-                    next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'un avertissement</b> ou <b style='color:#cb0000;'>d'une suspension temporaire de 24 heures</b>."
-                    recommandations = "Nous recommandons d'éduquer le coursier sur l'importance d'accepter les commandes et de ne pas les réaffecter et de l'avertir des conséquences de cette action."
-                elif metric == "Courier_not_moving":
-                    next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'un avertissement</b> ou <b style='color:#cb0000;'>d'une suspension temporaire de 24 heures</b>."
-                    recommandations = "Nous recommandons d'éduquer le coursier sur l'importance de suivre correctement les processus Glovo, notamment en cliquant sur les boutons au bon moment et de ne pas s'arrêter pendant une commande."
-            elif step == "2":
-                if metric == "Late_unbooks_and_no_shows":
-                    next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'une suspension temporaire de 24 heures ou de 48 heures.</b> "
-                    recommandations = "Nous recommandons d'informer le coursier sur l'importance de se présenter aux créneaux réservés et de ne pas réserver d'heures à moins que le coursier soit certain de les travailler."
-                elif metric == "Reassignments":
-                    next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'une suspension temporaire de 24 heures ou de 48 heures.</b> "
-                    recommandations = "Nous recommandons d'éduquer le coursier sur l'importance d'accepter les commandes et de ne pas les réaffecter et de l'avertir des conséquences de cette action."
-                elif metric == "Courier_not_moving":
-                    next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'une suspension temporaire de 24 heures ou de 48 heures.</b> "
-                    recommandations = "Nous recommandons d'éduquer le coursier sur l'importance de suivre correctement les processus Glovo, notamment en cliquant sur les boutons au bon moment et de ne pas s'arrêter pendant une commande."
-            elif step == "3":
-                if metric == "Late_unbooks_and_no_shows":
-                    next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'une suspension temporaire de 48 heures ou définitive.</b> "
-                    recommandations = "Nous recommandons de punir le coursier et/ou e le sensibiliser à l'importance d'arriver au travail à temps et de ne pas réserver d'heures à moins qu'il soit certain de les travailler."
-                elif metric == "Reassignments":
-                    next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'une suspension temporaire de 48 heures ou définitive.</b> "
-                    recommandations = "Nous recommandons de punir le coursier et/oude le sensibiliser à l'importance de livrer les commandes."
-                elif metric == "Courier_not_moving":
-                    next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet<b style='color:#cb0000;'>  d'une suspension temporaire de 48 heures ou définitive.</b> "
-                    recommandations = "Nous vous recommandons de punir le coursier et/ou e le sensibiliser à l'importance de suivre correctement les processus Glovo, notamment en cliquant sur les boutons au bon moment et en ne vous arrêtant pas pendant une commande. Tout manquement sera considéré comme une fraude et ne sera pas toléré."
-            elif step == "4":
-                recommandations = "Le coursier a atteint la derniére étape du Funnel."
-            else:
-                recommandations = "Félicitations au coursier qui a progressé hors de le Funnel !"
+        elif action == "TEMPORARY_BLOCK":
+            if reason == "NO_SHOWS":
+                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'une suspension définitive.</b> "
+                recommandations = "Nous recommandons de punir le coursier et/ou e le sensibiliser à l'importance d'arriver au travail à temps et de ne pas réserver d'heures à moins qu'il soit certain de les travailler."
+            elif reason == "REASSIGNMENTS":
+                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'une suspension définitive.</b> "
+                recommandations = "Nous recommandons de punir le coursier et/oude le sensibiliser à l'importance de livrer les commandes."
+            elif reason == "COURIER_NOT_MOVING":
+                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet<b style='color:#cb0000;'>  d'une suspension définitive.</b> "
+                recommandations = "Nous vous recommandons de punir le coursier et/ou e le sensibiliser à l'importance de suivre correctement les processus Glovo, notamment en cliquant sur les boutons au bon moment et en ne vous arrêtant pas pendant une commande. Tout manquement sera considéré comme une fraude et ne sera pas toléré."
+            elif reason == "LATE_UNBOOKINGS":
+                next_step = "En fonction de l'ensemble de ses performances récentes, le coursier pourrait faire l'objet <b style='color:#cb0000;'> d'un avertissement</b> ou <b style='color:#cb0000;'>d'une suspension temporaire de 24 heures</b>."
+                recommandations = "Nous recommandons de punir le coursier et/ou e le sensibiliser de ne pas annuler les créneaux réservés avant moins de 24h et de ne pas réserver d'heures à moins que le coursier soit certain de les travailler."
+
+        elif action == "BLOCK":
+            recommandations = "Le coursier est défenitivement bloqué."
 
         if period == "daily":
-            courier = ""
-            if str(cycle_point) == "END":
-                courier = "Le coursier <span style='color:#00cb11;'>" + str(
-                    name) + "</span> avec l'ID <b style='color:#00cb11;'>" + str(
-                    int(idd)) + "</b> a atteint <b style='color#00cb11;'>" + str(
-                    np.round(metric_value, 4) * 100) + "%</b> dans l'indicateur \"" + str(metric) + "\".<br>"
-                courier += recommandations
-            else:
-                if accelarted:
-                    courier = "Le coursier <span style='color:#670b0b;'>" + str(
-                        name) + "</span> avec l'ID <b style='color:#670b0b;'>" + str(
-                        int(idd)) + "</b> a atteint <b style='color:#670b0b;'>" + str(
-                        np.round(metric_value, 4) * 100) + "%</b> dans l'indicateur \"" + str(metric) + "\".<br>"
-                    courier += recommandations
-                else:
-                    courier = "Le coursier <span style='color:#cb0000;'>" + str(
+            courier = "Le coursier <span style='color:#cb0000;'>" + str(
                         name) + "</span> avec l'ID <b style='color:#cb0000;'>" + str(
-                        int(idd)) + "</b> a atteint <b style='color:#cb0000;'>" + str(
-                        np.round(metric_value, 4) * 100) + "%</b> dans l'indicateur \"" + str(metric) + "\".<br>"
-                    courier += "Il est donc actuellement dans <b > l'étape numréro " + step + "</b>. Veuillez noter qu'" + next_step.lower() + ". <br> " + recommandations
+                        int(idd)) + "</b> est actuellement dans le \"Funnel\" pour l'indicateur <b style='color:#cb0000;'> \"" + str(reason) + "\"</b>. Il a été le sujet de l'action <b style='color:#cb0000;'> \"" + str(action) + "\"</b> par AFM.<br>"
+            if action != "BLOCK":
+                courier += "Veuillez noter qu'" + next_step.lower() + ". <br> "
+            courier += recommandations
+
             couriers.append(courier)
 
     return couriers
